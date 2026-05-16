@@ -6,17 +6,16 @@ let resetBtn = document.getElementById("resetSettingsBtn");
 
 // OPEN GAME
 openBtn.addEventListener("click", function () {
-    let name = document.getElementById("playerName").value;
+    let name = document.getElementById("playerName").value.trim();
     let board = document.getElementById("boardSize").value;
     let difficulty = document.getElementById("difficulty").value;
     let theme = document.querySelector('input[name="theme"]:checked').value;
 
     if (name === "") {
-        alert("Enter your name!");
+        alert("Please enter your name before starting!");
         return;
     }
 
-    // SAVE SETTINGS
     sessionStorage.setItem("playerName", name);
     sessionStorage.setItem("boardSize", board);
     sessionStorage.setItem("difficulty", difficulty);
@@ -27,27 +26,65 @@ openBtn.addEventListener("click", function () {
 
 // SAVE SETTINGS
 saveBtn.addEventListener("click", function () {
-    let name = document.getElementById("playerName").value;
-    document.cookie = "playerName=" + name;
+    let name = document.getElementById("playerName").value.trim();
+    let board = document.getElementById("boardSize").value;
+    let difficulty = document.getElementById("difficulty").value;
+    let theme = document.querySelector('input[name="theme"]:checked').value;
+
+    let settings = { name, board, difficulty, theme };
+    localStorage.setItem("launcherSettings", JSON.stringify(settings));
     alert("Settings saved!");
 });
 
 // LOAD SETTINGS
 loadBtn.addEventListener("click", function () {
-    let cookies = document.cookie.split(";");
+    let saved = localStorage.getItem("launcherSettings");
 
-    cookies.forEach(c => {
-        c = c.trim();
-        if (c.startsWith("playerName=")) {
-            let name = c.split("=")[1];
-            document.getElementById("playerName").value = name;
-        }
-    });
+    if (!saved) {
+        alert("No saved settings found!");
+        return;
+    }
 
+    let settings = JSON.parse(saved);
+
+    document.getElementById("playerName").value = settings.name || "";
+    document.getElementById("boardSize").value = settings.board || "4x4";
+    document.getElementById("difficulty").value = settings.difficulty || "medium";
+
+    let themeRadio = document.querySelector('input[name="theme"][value="' + settings.theme + '"]');
+    if (themeRadio) themeRadio.checked = true;
+
+    updatePreview();
     alert("Settings loaded!");
 });
 
 // RESET SETTINGS
 resetBtn.addEventListener("click", function () {
     document.getElementById("setupForm").reset();
+    updatePreview();
 });
+
+//Change 1: Added live preview functionality
+// Old code: updatePreview was never called — preview always showed "No settings selected yet."
+// Replaced with:
+function updatePreview() {
+    let name = document.getElementById("playerName").value.trim() || "Player";
+    let board = document.getElementById("boardSize").value;
+    let difficulty = document.getElementById("difficulty").value;
+    let theme = document.querySelector('input[name="theme"]:checked').value;
+
+    let cardCount = board === "4x5" ? 20 : board === "6x6" ? 36 : 16;
+
+    document.getElementById("previewText").innerText =
+        "Player: " + name + " | Board: " + board + " (" + cardCount + " cards) | Difficulty: " + difficulty + " | Theme: " + theme;
+}
+
+// Attach live preview to all inputs
+document.getElementById("playerName").addEventListener("input", updatePreview);
+document.getElementById("boardSize").addEventListener("change", updatePreview);
+document.getElementById("difficulty").addEventListener("change", updatePreview);
+document.querySelectorAll('input[name="theme"]').forEach(r => r.addEventListener("change", updatePreview));
+
+// Run on page load
+updatePreview();
+//- End Change 1
